@@ -1,0 +1,219 @@
+
+R version 3.3.0 beta (2016-03-30 r70404) -- "Supposedly Educational"
+Copyright (C) 2016 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> ###################################################################
+> # Figures for analytical results in att_CI project
+> # The program generats 
+> ###################################################################
+> 
+> 
+> rm(list=ls())
+> 
+> library(dplyr)
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+> library(tidyr)
+> library(ggthemes)
+> library(ggplot2)
+> 
+> sigma0 = 1
+> sigma1.vec = seq(1,10,length=10)
+> gain = function(ratio,p0){
++   gain = 1 - 1/sqrt( ratio * (1-p0)+p0 )
++   return(gain)
++ }
+> 
+> ### paper statistics
+> print(gain(2, p0=0.2))
+[1] 0.254644
+> 
+> 
+> ### Figure calculations:
+> 
+> gain.vec1 = sapply(sigma1.vec, gain,p0=0.2)*100
+> gain.vec2 = sapply(sigma1.vec, gain,p0=0.5)*100
+> gain.vec3 = sapply(sigma1.vec, gain,p0=0.8)*100
+> 
+> 
+> dp = data.frame(
++   gain.vec1,
++   gain.vec2,
++   gain.vec3
++   ) %>%
++   gather(key = gain.vec ,value=gain) %>%
++   mutate(
++     ratio = rep(sigma1.vec,3),
++     prob = factor(gain.vec)
++   ) %>%
++   select(-gain.vec)
+> levels(dp$prob) = paste(c(0.2,0.5,0.8))
+> head(dp)
+      gain ratio prob
+1  0.00000     1  0.2
+2 25.46440     2  0.2
+3 37.98263     3  0.2
+4 45.76739     4  0.2
+5 51.20500     5  0.2
+6 55.27864     6  0.2
+> 
+> p <- ggplot(dp,aes(x=ratio, y = gain, col=prob, shape=prob))+
++   geom_point(size=3)+
++   geom_line()+
++   labs(
++     x = expression(paste("Variance ratio (",sigma[1]/sigma[0],")")),
++     y = "Length gain (in percentages ) \n"
++   )+
++   theme_bw()+
++   theme(axis.text.x = element_text(colour="grey20",size=10,angle=90,hjust=.5,vjust=.5))+
++   theme(axis.text.y = element_text(colour="grey20",size=10))+
++   theme(axis.title.y = element_text(colour="grey20",size=20))+
++   theme(axis.title.x = element_text(colour="grey20",size=20))+
++   theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank() )+
++   theme(panel.border = element_blank(), 
++         axis.line.x = element_line(colour = "black"),
++         axis.line.y = element_line(colour = "black"))+
++   theme(title = element_text(size=15))+
++   scale_colour_grey( start = 0, end = 0.5 )+
++   guides(col=guide_legend(title="Treatment probability: "),shape=guide_legend(title="Treatment probability: "))+ # adding legend title
++   theme(legend.position="bottom", 
++         legend.text = element_text(size=15)) # legend positvjust=0.5ion
+> 
+> 
+> setwd("~/Dropbox/att_CI/figures")
+> pdf("gain_percent_probability1.pdf")
+> print(p)
+> dev.off()
+null device 
+          1 
+> 
+> 
+> if(FALSE){
++   ###############################################
++   # Analytical example of binary variables
++   ###############################################
++   
++   rm(list=ls())
++   
++   p0=0.1
++   f.ratio = function(satt){
++     p1 = p0 + satt
++     ratio = p1*(1-p1)/ (p0*(1-p0))
++     return(ratio)
++   }
++   
++   gain = function(ratio,p0){
++     gain = 1 - 1/sqrt( ratio * (1-p0)+p0 )
++     return(gain)
++   }
++   
++   satt.vec = seq(0,0.3,length=100)
++   gain(f.ratio(satt.vec),p0=p0)
++   
++   dp = data.frame(
++     satt = satt.vec,
++     gain = gain(f.ratio(satt.vec),p0=p0)
++   )
++   
++   ### paper statistics
++   print(gain(f.ratio(0.1), p0=0.1))
++   
++   p <- ggplot(dp,aes(x=satt, y = gain))+
++     geom_point()+
++     geom_line()+
++     labs(
++       x = expression(P[1]-P[0]),
++       y = "Length gain (in percentages )"
++     )+
++     theme_bw()+
++     theme(axis.text.x = element_text(colour="grey20",size=10))+
++     theme(axis.text.y = element_text(colour="grey20",size=10))+
++     theme(axis.title.y = element_text(colour="grey20",size=20))+
++     theme(axis.title.x = element_text(colour="grey20",size=20))+
++     theme(panel.border = element_blank())+
++     theme(axis.line.x = element_line(color="black", size = 0.5),
++           axis.line.y = element_line(color="black", size = 0.5))+
++     theme(title = element_text(size=15))+
++     theme(panel.border = element_blank(),axis.line = element_line(colour = "black"))
++   
++   p <- p+annotate("text", x= 0.05, y=0.38, label=paste("P[0]"," == 0.1"),size=6, parse=TRUE)
++   
++   setwd("~/Dropbox/att_CI/figures")
++   pdf("gain_binary_outcome.pdf")
++   print(p)
++   dev.off()
++   
++   ##################################################################################
++   ### Binary outcome - finite sample simulation
++   ##################################################################################
++   
++   n=1000
++   p0=0.1
++   y0 = rbinom(n,size=1,prob=p0)
++   
++   f.ratio = function(satt){
++     p1 = p0 + satt
++     y1 = rbinom(n,size=1,prob=p1)
++     
++     ratio = var(y1)/var(y0)
++     return(ratio)
++   }
++   
++   gain = function(ratio,p0){
++     gain = 1 - 1/sqrt( ratio * (1-p0)+p0 )
++     return(gain)
++   }
++   
++   satt.vec = seq(0,0.3,length=100)
++   
++   dp = data.frame(
++     satt = satt.vec,
++     gain = sapply(sapply(satt.vec,f.ratio), gain, p0=p0),
++     ratio = sapply(satt.vec,f.ratio)
++   )
++   
++   print(dp)
++   
++ }
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> proc.time()
+   user  system elapsed 
+  0.991   0.248   0.989 
