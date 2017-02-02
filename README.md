@@ -1,4 +1,4 @@
-# tmp_YJ
+# Sekhon and Shem-Tov (2017) Replication repository
 
 ## R code files
 #### Real data example
