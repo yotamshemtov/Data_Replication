@@ -1,4 +1,4 @@
-# Sekhon and Shem-Tov (2017) Replication repository
+# Sekhon and Shem-Tov (2017) replication repository
 
 ## R code files
 
