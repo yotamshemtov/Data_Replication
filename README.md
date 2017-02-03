@@ -3,6 +3,7 @@
 ## R code files
 
 The **estCI** package that contains the *aveCI* function which is used in the replication code can be dowloaded using the command below in the R command shell:
+
 devtools::install_github("yotamshemtov/estCI")
 
 #### Real data example
