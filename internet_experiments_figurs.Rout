@@ -1,0 +1,302 @@
+
+R version 3.3.3 RC (2017-02-27 r72279) -- "Another Canoe"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> 
+> rm(list=ls())
+> 
+> library(ggplot2)
+> library(ggthemes)
+> library(estCI)
+> library(dplyr)
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+> library(tidyr)
+> 
+> dirFigures = "~/Dropbox/att_CI/figures"
+> 
+> d = read.csv("~/Dropbox/att_CI/data_sets_potential/internet/SampleExperiments.csv")
+> glimpse(d)
+Observations: 38,642
+Variables: 8
+$ cnt_l_nonnull (dbl) 355020, 355020, NA, 3070, 1387, 59047, 36788, 59047, ...
+$ cnt_l_total   (int) 5326794, 5326794, 5326794, 5501, 5501, 1028497, 10284...
+$ mu_l_nonnull  (dbl) 2.087240e+00, 2.639595e+00, 7.907426e-01, 1.415961e+0...
+$ var_l_nonnull (dbl) 3.817525e+00, 6.531168e+00, 3.452812e+01, 1.214669e+0...
+$ cnt_r_nonnull (dbl) 355649, 355649, NA, 3127, 1308, 59050, 37119, 59050, ...
+$ cnt_r_total   (int) 5327076, 5327076, 5327076, 5496, 5496, 1031519, 10315...
+$ mu_r_nonnull  (dbl) 2.081673e+00, 2.632253e+00, 7.908334e-01, 1.403262e+0...
+$ var_r_nonnull (dbl) 3.788624e+00, 6.467731e+00, 3.441942e+01, 1.192734e+0...
+> 
+> d$n = d$cnt_l_nonnull + d$cnt_r_nonnull
+> 
+> d[,"att.gain"] = NA
+> d[,"atc.gain"] = NA
+> 
+> d[,"atc.len"] = NA
+> d[,"att.len"] = NA
+> d[,"ate.len"] = NA
+> 
+> d[,"atc.tstat"] = NA
+> d[,"att.tstat"] = NA
+> d[,"ate.tstat"] = NA
+> d[,"shortest.tstat"] = NA
+> 
+> d[,"atc.reject.null"] = NA
+> d[,"att.reject.null"] = NA
+> d[,"ate.reject.null"] = NA
+> 
+> ### Length gains
+> f.exp = function(x){
++   r = aveCI( 
++     mu1 = x[,"mu_r_nonnull"],
++     mu0 = x[,"mu_l_nonnull"],
++     var1 = x[,"var_r_nonnull"],
++     var0 = x[,"var_l_nonnull"],
++     n = x[,"n"],
++     m = x[,"cnt_r_nonnull"],
++     Sharp.CI = FALSE,
++     stats.only = TRUE,
++     print = FALSE)
++   
++   atc.len = abs(r$satcCI[[1]]-r$satcCI[[2]])
++   atc.reject.null = r$satcCI$ci.lower.satc > 0 | r$satcCI$ci.upper.satc < 0
++   atc.tstat = r$satcCI$tstat.satc
++   
++   att.len = abs(r$sattCI[[1]]-r$sattCI[[2]])
++   att.reject.null = r$sattCI$ci.lower.satt > 0 | r$sattCI$ci.upper.satt < 0
++   att.tstat = r$sattCI$tstat.satt
++   
++   ate.len = abs(r$neymanCI[[1]]-r$neymanCI[[2]])
++   ate.reject.null = r$neymanCI$ci.lower.neyman > 0 | r$neymanCI$ci.upper.neyman < 0
++   ate.tstat = r$neymanCI$tstat.neyman
++   
++   shortest.tstat = r$shortestCI$tstat.shortest
++   
++   rr = data_frame( 
++     att.gain = 1-att.len/ate.len,
++     atc.gain = 1-atc.len/ate.len,
++     atc.len,
++     atc.reject.null,
++     att.len,
++     att.reject.null,
++     ate.len,
++     ate.reject.null,
++     shortest.tstat,
++     atc.tstat,
++     att.tstat,
++     ate.tstat
++   )
++   return(rr)
++ }
+> 
+> for (i in c(1:dim(d)[1]) ){
++   if( i %% 1000 == 0 ){ cat("Iteration: ", i, "\n") }
++   
++   if( sum(is.na(d[i, !colnames(d) %in% c( "att.gain","atc.gain","atc.len","atc.reject.null", "att.len", "att.reject.null", "ate.len", "ate.reject.null", "shortest.tstat","atc.tstat", "att.tstat","ate.tstat" ) ])) > 0 ){
++     r = rep(NA, 8)
++   } else {
++     r = f.exp( d[i,] )
++     d[ i , c( "att.gain","atc.gain","atc.len","atc.reject.null", "att.len", "att.reject.null", "ate.len", "ate.reject.null",
++               "shortest.tstat","atc.tstat", "att.tstat","ate.tstat") ] = r
++   }
++   
++ }
+Iteration:  1000 
+Iteration:  2000 
+Iteration:  3000 
+Iteration:  4000 
+Iteration:  5000 
+Iteration:  6000 
+Iteration:  7000 
+Iteration:  8000 
+Iteration:  9000 
+Iteration:  10000 
+Iteration:  11000 
+Iteration:  12000 
+Iteration:  13000 
+Iteration:  14000 
+Iteration:  15000 
+Iteration:  16000 
+Iteration:  17000 
+Iteration:  18000 
+Iteration:  19000 
+Iteration:  20000 
+Iteration:  21000 
+Iteration:  22000 
+Iteration:  23000 
+Iteration:  24000 
+Iteration:  25000 
+Iteration:  26000 
+Iteration:  27000 
+Iteration:  28000 
+Iteration:  29000 
+Iteration:  30000 
+Iteration:  31000 
+Iteration:  32000 
+Iteration:  33000 
+Iteration:  34000 
+Iteration:  35000 
+Iteration:  36000 
+Iteration:  37000 
+Iteration:  38000 
+> 
+> ### Keep only experiments without missing values
+> dp = d %>% filter( complete.cases(.) )
+> cat(dim(dp), "\n")
+26791 21 
+> cat(dim(d), "\n")
+38642 21 
+> 
+> # Define diff-in-means and variance ratio
+> dp$td = dp$mu_r_nonnull - dp$mu_l_nonnull 
+> dp$var.ratio = dp$var_r_nonnull/dp$var_l_nonnull
+> 
+> 
+> ### Remove a few very extreme outliers
+> # print( outlier <- quantile( dp$var.ratio, prob = .99, na.rm = TRUE ) )
+> # cat( sum( dp$var.ratio > outlier ) ,"\n")
+> 
+> print( outlier1 <- quantile( abs(dp$td), prob = .99, na.rm = TRUE ) )
+     99% 
+70669.05 
+> cat( sum( abs(dp$td) > outlier1 ) ,"\n")
+268 
+> 
+> print( outlier2 <- quantile( abs(dp$var.ratio), prob = .99, na.rm = TRUE ) )
+     99% 
+2.780932 
+> cat( sum( abs(dp$var.ratio) > outlier2 ) ,"\n")
+268 
+> 
+> dim(dp)
+[1] 26791    23
+> dp = filter( dp, (abs(td) <= outlier1 | abs(var.ratio) <= outlier2) & !is.na(var.ratio) & att.gain < 500  )
+> dim(dp)
+[1] 26782    23
+> 
+> ### Raw distribution of the difference-in-means:
+> 
+> p = ggplot(select(dp,td), aes(x = td) )+
++   xlim(-.2,.2)+
++   geom_density()+
++   labs(
++     x="Difference-in-means",
++     y = "Density",
++     title = "")+
++   geom_vline( xintercept  = 0, col = "grey10", lty=2 )+
++   theme_bw()+ 
++   theme( panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank() )+
++   theme(axis.text.x = element_text(colour="grey20",size=13))+
++   theme(axis.text.y = element_text(colour="grey20",size=13))+
++   theme(axis.title.y = element_text(colour="grey20",size=13))+
++   theme(axis.title.x = element_text(colour="grey20",size=13))+
++   theme(panel.border = element_blank())+
++   theme(axis.line.x = element_line(color="black", size = 0.8),
++         axis.line.y = element_line(color="black", size = 0.8))
+> 
+> ggsave(p, file = "~/Dropbox/att_CI/figures/internet_experiments_diff_means_dist.pdf", width = 5, height=4)
+Warning message:
+Removed 10916 rows containing non-finite values (stat_density). 
+> 
+> 
+> #########################################
+> # Variance gains/difference figures
+> #########################################
+> 
+> 
+> #########################################
+> # Figure 1 (efficiency/variance gains)
+> #########################################
+> 
+> # bin things into groups:
+> summary(dp$var.ratio)
+   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ 0.0000  0.9617  0.9992     Inf  1.0300     Inf 
+> table(is.na(dp$var.ratio))
+
+FALSE 
+26782 
+> dp$var.ratio.g = cut(dp$var.ratio, breaks = as.numeric(quantile( dp$var.ratio, prob = seq(0.01, 0.99, length = 200), na.rm = TRUE )) )
+> table(is.na(dp$var.ratio.g))
+
+FALSE  TRUE 
+26250   532 
+> dp0 = filter(dp, !is.na(var.ratio.g) )
+> table(is.na(dp0$var.ratio.g))
+
+FALSE 
+26250 
+> 
+> dp0 = group_by(dp0,  var.ratio.g) %>%
++   summarise(
++     att.gain.ave = mean(att.gain),
++     var.ratio.ave = mean(var.ratio)
++   ) %>% ungroup()
+> 
+> p = ggplot( dp0, aes( x = var.ratio.ave , y = att.gain.ave ) )+
++   geom_point(size=2, alpha=0.4)+geom_line()+
++   geom_vline( xintercept  = 1, col = "grey10", lty=2 )+
++   labs(
++     x=expression(paste("\n \n Variance ratio (",sigma[1]^2/sigma[0]^2,")")),
++     y = "Difference in CI/PI length (%) \n",
++     title = "")+
++   #theme_economist()+
++   theme_bw()+ 
++   theme( panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank() )+
++   theme(axis.text.x = element_text(colour="grey20",size=13))+
++   theme(axis.text.y = element_text(colour="grey20",size=13))+
++   theme(axis.title.y = element_text(colour="grey20",size=13))+
++   theme(axis.title.x = element_text(colour="grey20",size=13))+
++   theme(panel.border = element_blank())+
++   theme(axis.line.x = element_line(color="black", size = 0.8),
++         axis.line.y = element_line(color="black", size = 0.8))+
++   theme(title = element_text(size=15))
+> ggsave(p, file = "~/Dropbox/att_CI/figures/internet_experiments_gains_variance_ratio.pdf", width = 5, height=4)
+There were 32 warnings (use warnings() to see them)
+> 
+> 
+> 
+> #########################################
+> # Figure 2 (T-stat)
+> #########################################
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> proc.time()
+   user  system elapsed 
+257.176   1.140 258.200 

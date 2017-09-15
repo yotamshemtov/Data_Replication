@@ -1,0 +1,204 @@
+
+R version 3.3.3 RC (2017-02-27 r72279) -- "Another Canoe"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> 
+> ###################################################
+> # Analytical figures
+> ###################################################
+> 
+> rm(list = ls())
+> library(ggplot2)
+> 
+> 
+> f.omega = function(p, ratio, rho){
++   element1 = ratio^2 - rho * ratio
++   element2 = (ratio^2 + 1 - 2 * rho * ratio) * (1-2*p^2)
++   omega = max( 0, min( 1, element1 / element2) )
++   return(omega)
++ }
+> f.data = function(p.vec, ratio.vec, rho ){
++   d = data.frame(
++     p = p.vec[1],
++     omega = sapply( ratio.vec,  function(x){ return( f.omega(ratio = x, p = p.vec[1], rho = rho ) ) } ),
++     ratio = ratio.vec
++   )
++   
++   for (i in p.vec[-1] ){
++     tmp = data.frame(
++       p = i,
++       omega = sapply( ratio.vec,  function(x){ return( f.omega(ratio = x, p = i , rho = rho ) ) } ),
++       ratio = ratio.vec
++     )
++     
++     d = rbind(d,tmp)
++     
++   }
++   
++   d$p = as.factor(d$p)
++   d$rho = rho
++   return( d )
++ }
+> 
+> p.vec = c(0.3,0.5,0.7)
+> ratio.vec = seq(0.1,2,by=0.0643)
+> 
+> d1 = f.data(p.vec = p.vec, ratio.vec = ratio.vec, rho = -1)
+> d2 = f.data(p.vec = p.vec, ratio.vec = ratio.vec, rho = 0)
+> d3 = f.data(p.vec = p.vec, ratio.vec = ratio.vec, rho = 1)
+> 
+> p1 = ggplot(d1, aes( x = ratio, y = omega, col = p, shape = p  ) )+
++   geom_point(size=3, alpha = 0.5)+
++   geom_line()+
++   labs(
++     x = expression(paste("Variance ratio (",sigma[1]^2/sigma[0]^2,")")),
++     y = "Omega ( weight on SATT ) \n",
++     title = expression(paste(rho," = -1"))
++   )+
++   theme_bw()+
++   theme(axis.text.x = element_text(colour="grey20",size=10))+
++   theme(axis.text.y = element_text(colour="grey20",size=10))+
++   theme(axis.title.y = element_text(colour="grey20",size=12))+
++   theme(axis.title.x = element_text(colour="grey20",size=12))+
++   theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank() )+
++   theme(panel.border = element_blank(), 
++         axis.line.x = element_line(colour = "black"),
++         axis.line.y = element_line(colour = "black"))+
++   theme(title = element_text(size=12))+
++   scale_colour_grey( start = 0, end = 0.5 )+
++   guides(col=guide_legend(title="Treatment probability: "),shape=guide_legend(title="Treatment probability: "))+ # adding legend title
++   theme(legend.position="bottom", 
++         legend.text = element_text(size=13)) # legend positvjust=0.5ion
+> 
+> 
+> p2 = ggplot(d2, aes( x = ratio, y = omega, col = p, shape = p  ) )+
++   geom_point(size=3, alpha = 0.5)+
++   geom_line()+
++   labs(
++     x = expression(paste("Variance ratio (",sigma[1]^2/sigma[0]^2,")")),
++     y = "Omega ( weight on SATT ) \n",
++     title = expression(paste(rho," = 0"))
++   )+
++   theme_bw()+
++   theme(axis.text.x = element_text(colour="grey20",size=10))+
++   theme(axis.text.y = element_text(colour="grey20",size=10))+
++   theme(axis.title.y = element_text(colour="grey20",size=12))+
++   theme(axis.title.x = element_text(colour="grey20",size=12))+
++   theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank() )+
++   theme(panel.border = element_blank(), 
++         axis.line.x = element_line(colour = "black"),
++         axis.line.y = element_line(colour = "black"))+
++   theme(title = element_text(size=12))+
++   scale_colour_grey( start = 0, end = 0.5 )+
++   guides(col=guide_legend(title="Treatment probability: "),shape=guide_legend(title="Treatment probability: "))+ # adding legend title
++   theme(legend.position="bottom", 
++         legend.text = element_text(size=13)) # legend positvjust=0.5ion
+> 
+> 
+> p3 = ggplot(d3, aes( x = ratio, y = omega, col = p, shape = p  ) )+
++   geom_point(size=3, alpha = 0.5)+
++   geom_line()+
++   labs(
++     x = expression(paste("Variance ratio (",sigma[1]^2/sigma[0]^2,")")),
++     y = "Omega ( weight on SATT ) \n",
++     title = expression(paste(rho," = 1"))
++   )+
++   theme_bw()+
++   theme(axis.text.x = element_text(colour="grey20",size=10))+
++   theme(axis.text.y = element_text(colour="grey20",size=10))+
++   theme(axis.title.y = element_text(colour="grey20",size=12))+
++   theme(axis.title.x = element_text(colour="grey20",size=12))+
++   theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank() )+
++   theme(panel.border = element_blank(), 
++         axis.line.x = element_line(colour = "black"),
++         axis.line.y = element_line(colour = "black"))+
++   theme(title = element_text(size=12))+
++   scale_colour_grey( start = 0, end = 0.5 )+
++   guides(col=guide_legend(title="Treatment probability: "),shape=guide_legend(title="Treatment probability: "))+ # adding legend title
++   theme(legend.position="bottom", 
++         legend.text = element_text(size=13)) # legend positvjust=0.5ion
+> 
+> 
+> 
+> ggsave(p1, file = "~/Dropbox/att_CI/figures/sato_omega_rho1.pdf")
+Saving 7 x 7 in image
+> ggsave(p2, file = "~/Dropbox/att_CI/figures/sato_omega_rho2.pdf")
+Saving 7 x 7 in image
+> ggsave(p3, file = "~/Dropbox/att_CI/figures/sato_omega_rho3.pdf")
+Saving 7 x 7 in image
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> proc.time()
+   user  system elapsed 
+  1.172   0.264   1.216 
