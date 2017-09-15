@@ -1,0 +1,1344 @@
+
+R version 3.4.0 (2017-04-21) -- "You Stupid Darkness"
+Copyright (C) 2017 The R Foundation for Statistical Computing
+Platform: x86_64-pc-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[Previously saved workspace restored]
+
+> 
+> rm(list = ls())
+> 
+> library(ggplot2)
+> library(tidyr)
+> library(dplyr)
+
+Attaching package: ‘dplyr’
+
+The following objects are masked from ‘package:stats’:
+
+    filter, lag
+
+The following objects are masked from ‘package:base’:
+
+    intersect, setdiff, setequal, union
+
+> 
+> install.packages("devtools")
+Installing package into ‘/accounts/grad/shemtov/R/x86_64-pc-linux-gnu-library/3.4’
+(as ‘lib’ is unspecified)
+--2017-07-14 13:58:29--  https://cran.cnr.berkeley.edu/src/contrib/devtools_1.13.2.tar.gz
+Resolving cran.cnr.berkeley.edu (cran.cnr.berkeley.edu)... 169.229.201.201, 2607:f140:0:8000::201
+Connecting to cran.cnr.berkeley.edu (cran.cnr.berkeley.edu)|169.229.201.201|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 486355 (475K) [application/x-gzip]
+Saving to: ‘/tmp/RtmpIgRWtk/downloaded_packages/devtools_1.13.2.tar.gz’
+
+     0K .......... .......... .......... .......... .......... 10% 23.0M 0s
+    50K .......... .......... .......... .......... .......... 21% 29.6M 0s
+   100K .......... .......... .......... .......... .......... 31% 29.4M 0s
+   150K .......... .......... .......... .......... .......... 42% 32.9M 0s
+   200K .......... .......... .......... .......... .......... 52% 34.8M 0s
+   250K .......... .......... .......... .......... .......... 63% 30.4M 0s
+   300K .......... .......... .......... .......... .......... 73% 31.0M 0s
+   350K .......... .......... .......... .......... .......... 84% 49.6M 0s
+   400K .......... .......... .......... .......... .......... 94% 21.6M 0s
+   450K .......... .......... ....                            100% 58.1M=0.02s
+
+2017-07-14 13:58:29 (30.6 MB/s) - ‘/tmp/RtmpIgRWtk/downloaded_packages/devtools_1.13.2.tar.gz’ saved [486355/486355]
+
+* installing *source* package ‘devtools’ ...
+** package ‘devtools’ successfully unpacked and MD5 sums checked
+** R
+** inst
+** preparing package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** installing vignettes
+** testing if installed package can be loaded
+* DONE (devtools)
+
+The downloaded source packages are in
+	‘/tmp/RtmpIgRWtk/downloaded_packages’
+> library(devtools)
+> install_github("yotamshemtov/estCI")
+Skipping install of 'estCI' from a github remote, the SHA1 (10c313d4) has not changed since last install.
+  Use `force = TRUE` to force installation
+> library(estCI)
+> 
+> set.seed(12345)
+> 
+> ############################################ 
+> # Simulation 
+> ############################################
+> 
+> # Parameters
+> n=1000
+> num.simulations.finite = 1000
+> num.draws.super = 1000
+> sigma0 = 1
+> beta.var = seq(0,5,by = 0.5)
+> 
+> f.finite.sample = function(k){
++   
++   ### Generate data
++   y0 = rnorm(n,mean=10,sd=sigma0)
++   beta = rnorm(n,mean=0,sd=k)
++   y1 = beta+y0
++   tau = y1-y0
++   
++   sate = mean((y1-y0))
++   rho0 = cor(y1,y0)
++   tau = y1-y0
++   
++   gain.satt.vec <- gain.sharp.vec <- gain.satt.sharp.vec <- gain.satt.rho.vec  <- rep(NA,num.simulations.finite)
++   reject.satt.vec <- reject.sharp.vec <- reject.sate.neyman.vec <- reject.wilcox.vec <- reject.ks.vec <- rep(NA,num.simulations.finite) #new
++   type1.error.satt.vec <- type1.error.satc.vec <- type1.error.sate.rho.vec <- rep(NA,num.simulations.finite)
++   error.sate.in.satt.vec <- error.satt.in.sate.vec <- rep(NA,num.simulations.finite)
++   
++   for (i in 1:num.simulations.finite){
++     
++     tr = rep(0,n)
++     tr.index = sample(c(1:n),size=n/2,replace=FALSE)
++     tr[tr.index]=1
++     
++     y = tr*y1 + y0*(1-tr)
++     
++     result = aveCI(y,tr, print=FALSE, rho = rho0 )
++     
++     length.satt.ci = result$sattCI[[2]]-result$sattCI[[1]]
++     length.sharp.ci = result$sharpCI[[2]]-result$sharpCI[[1]]
++     length.neyman.ci = result$neymanCI[[2]]-result$neymanCI[[1]]
++     length.rho.ci = result$sate.rho$ci.upper.sate.rho-result$sate.rho$ci.lower.sate.rho
++     
++     satt = mean((y1-y0)[tr==1])
++     satc = mean((y1-y0)[tr==0])
++     
++     type1.error.satt.vec[i] = satt> result$sattCI[[2]] | satt< result$sattCI[[1]]
++     type1.error.satc.vec[i] = satc> result$satcCI[[2]] | satc< result$satcCI[[1]]
++     type1.error.sate.rho.vec[i] = sate > result$sate.rho$ci.upper.sate.rho | sate < result$sate.rho$ci.lower.sate.rho
++     
++     gain.satt.vec[i] = 1-length.satt.ci/length.neyman.ci
++     gain.sharp.vec[i] = 1-length.sharp.ci/length.neyman.ci
++     gain.satt.sharp.vec[i] = 1-length.satt.ci/length.sharp.ci
++     gain.satt.rho.vec[i] = 1 - length.satt.ci/length.rho.ci
++     
++     error.sate.in.satt.vec[i] = sate> result$sattCI[[2]] | sate< result$sattCI[[1]]
++     error.satt.in.sate.vec[i] = satt > result$neymanCI[[2]] | satt< result$neymanCI[[1]]
++     
++     # Rejection vectors
++     reject.satt.vec[i] <- as.numeric(result$sattCI$tstat.satt>1.96)
++     reject.sharp.vec[i] <- as.numeric(result$sharpCI$tstat.sharp>1.96)
++     reject.sate.neyman.vec[i] <-  as.numeric(result$sharpCI$tstat.sharp>1.96)
++     reject.wilcox.vec[i] <-  as.numeric(wilcox.test(y[tr==1],y[tr==0])$p.value)
++     reject.ks.vec[i] <-  as.numeric(ks.test(y[tr==1],y[tr==0])$p.value)
++   }
++   
++   r = data.frame(
++     type1.error.satt.ave = mean(type1.error.satt.vec),
++     type1.error.satc.ave = mean(type1.error.satc.vec),
++     type1.error.sate.rho.ave = mean(type1.error.sate.rho.vec),
++     gain.satt.ave = mean(gain.satt.vec),
++     gain.sharp.ave = mean(gain.sharp.vec),
++     gain.satt.sharp.ave = mean(gain.satt.sharp.vec),
++     gain.satt.rho.ave = mean(gain.satt.rho.vec),
++     error.sate.in.satt.ave = mean(error.sate.in.satt.vec),
++     error.satt.in.sate.ave = mean(error.satt.in.sate.vec),
++     var.tau = var(tau),
++     #
++     reject.satt.vec = mean(reject.satt.vec),
++     reject.sharp.vec = mean(reject.sharp.vec),
++     reject.sate.neyman.vec = mean(reject.sate.neyman.vec),
++     reject.wilcox.vec = mean(reject.wilcox.vec),
++     reject.ks.vec = mean(reject.ks.vec)
++   )
++   
++   return(r)
++ }
+> 
+> # check
+> print(f.finite.sample(1.5))
+  type1.error.satt.ave type1.error.satc.ave type1.error.sate.rho.ave
+1                0.055                0.041                    0.047
+  gain.satt.ave gain.sharp.ave gain.satt.sharp.ave gain.satt.rho.ave
+1     0.3263452      0.0428485           0.2961603         0.2169529
+  error.sate.in.satt.ave error.satt.in.sate.ave  var.tau reject.satt.vec
+1                  0.126                  0.003 2.287747           0.014
+  reject.sharp.vec reject.sate.neyman.vec reject.wilcox.vec reject.ks.vec
+1                0                      0         0.5183857  2.721717e-05
+> 
+> len.par.vec = length(beta.var)
+> d = data.frame(
++   gain.satt.ci = rep(NA,num.draws.super * len.par.vec),
++   gain.satt.sharp.ci =  rep(NA,num.draws.super * len.par.vec),
++   gain.sharp.ci = rep(NA,num.draws.super * len.par.vec),
++   gain.satt.rho.ci = rep(NA,num.draws.super * len.par.vec),
++   beta.var = rep(beta.var,each= num.draws.super),
++   size.indicator.satt = rep(NA,num.draws.super * len.par.vec ),
++   size.indicator.sate.in.satt = rep(NA,num.draws.super * len.par.vec ),
++   size.indicator.satc = rep(NA,num.draws.super * len.par.vec ),
++   size.indicator.satt.in.sate = rep(NA,num.draws.super * len.par.vec ),
++   size.indicator.sate.rho = rep(NA,num.draws.super * len.par.vec),
++   #
++   reject.satt = rep(NA,num.draws.super * len.par.vec),
++   reject.sharp = rep(NA,num.draws.super * len.par.vec),
++   reject.sate.neyman = rep(NA,num.draws.super * len.par.vec),
++   reject.wilcox = rep(NA,num.draws.super * len.par.vec),
++   reject.ks = rep(NA,num.draws.super * len.par.vec)
++ )
+> dim(d)
+[1] 11000    15
+> 
+> ### Simulation 
+> for (i in c(1:length(beta.var))){
++   for (s in c(1:num.draws.super)){
++     if(s%%10==0){cat("Iteration: ",s,"\n")}
++     
++     result = f.finite.sample(beta.var[i])
++     #
++     d$gain.satt.ci[(i-1)*num.draws.super + s] = result$gain.satt.ave
++     d$gain.sharp.ci[(i-1)*num.draws.super + s] = result$gain.sharp.ave
++     d$gain.satt.sharp.ci[(i-1)*num.draws.super + s] = result$gain.satt.sharp.ave
++     d$gain.satt.rho.ci[(i-1)*num.draws.super + s] = result$gain.satt.rho.ave
++     #
++     d$size.indicator.satt[(i-1)*num.draws.super + s] = result$type1.error.satt.ave
++     d$size.indicator.satc[(i-1)*num.draws.super + s] = result$type1.error.satc.ave
++     d$size.indicator.sate.in.satt[(i-1)*num.draws.super + s] = result$error.sate.in.satt.ave
++     d$size.indicator.satt.in.sate[(i-1)*num.draws.super + s] = result$error.satt.in.sate.ave
++     d$size.indicator.sate.rho[(i-1)*num.draws.super + s] = result$type1.error.sate.rho.ave
++     #
++     d$reject.satt[(i-1)*num.draws.super + s] = result$reject.satt.vec
++     d$reject.sharp[(i-1)*num.draws.super + s] = result$reject.sharp.vec
++     d$reject.sate.neyman[(i-1)*num.draws.super + s] = result$reject.sate.neyman.vec
++     d$reject.wilcox[(i-1)*num.draws.super + s] = result$reject.wilcox.vec
++     d$reject.ks[(i-1)*num.draws.super + s] = result$reject.ks.vec
++   }
++ }
+Iteration:  10 
+Iteration:  20 
+Iteration:  30 
+Iteration:  40 
+Iteration:  50 
+Iteration:  60 
+Iteration:  70 
+Iteration:  80 
+Iteration:  90 
+Iteration:  100 
+Iteration:  110 
+Iteration:  120 
+Iteration:  130 
+Iteration:  140 
+Iteration:  150 
+Iteration:  160 
+Iteration:  170 
+Iteration:  180 
+Iteration:  190 
+Iteration:  200 
+Iteration:  210 
+Iteration:  220 
+Iteration:  230 
+Iteration:  240 
+Iteration:  250 
+Iteration:  260 
+Iteration:  270 
+Iteration:  280 
+Iteration:  290 
+Iteration:  300 
+Iteration:  310 
+Iteration:  320 
+Iteration:  330 
+Iteration:  340 
+Iteration:  350 
+Iteration:  360 
+Iteration:  370 
+Iteration:  380 
+Iteration:  390 
+Iteration:  400 
+Iteration:  410 
+Iteration:  420 
+Iteration:  430 
+Iteration:  440 
+Iteration:  450 
+Iteration:  460 
+Iteration:  470 
+Iteration:  480 
+Iteration:  490 
+Iteration:  500 
+Iteration:  510 
+Iteration:  520 
+Iteration:  530 
+Iteration:  540 
+Iteration:  550 
+Iteration:  560 
+Iteration:  570 
+Iteration:  580 
+Iteration:  590 
+Iteration:  600 
+Iteration:  610 
+Iteration:  620 
+Iteration:  630 
+Iteration:  640 
+Iteration:  650 
+Iteration:  660 
+Iteration:  670 
+Iteration:  680 
+Iteration:  690 
+Iteration:  700 
+Iteration:  710 
+Iteration:  720 
+Iteration:  730 
+Iteration:  740 
+Iteration:  750 
+Iteration:  760 
+Iteration:  770 
+Iteration:  780 
+Iteration:  790 
+Iteration:  800 
+Iteration:  810 
+Iteration:  820 
+Iteration:  830 
+Iteration:  840 
+Iteration:  850 
+Iteration:  860 
+Iteration:  870 
+Iteration:  880 
+Iteration:  890 
+Iteration:  900 
+Iteration:  910 
+Iteration:  920 
+Iteration:  930 
+Iteration:  940 
+Iteration:  950 
+Iteration:  960 
+Iteration:  970 
+Iteration:  980 
+Iteration:  990 
+Iteration:  1000 
+Iteration:  10 
+Iteration:  20 
+Iteration:  30 
+Iteration:  40 
+Iteration:  50 
+Iteration:  60 
+Iteration:  70 
+Iteration:  80 
+Iteration:  90 
+Iteration:  100 
+Iteration:  110 
+Iteration:  120 
+Iteration:  130 
+Iteration:  140 
+Iteration:  150 
+Iteration:  160 
+Iteration:  170 
+Iteration:  180 
+Iteration:  190 
+Iteration:  200 
+Iteration:  210 
+Iteration:  220 
+Iteration:  230 
+Iteration:  240 
+Iteration:  250 
+Iteration:  260 
+Iteration:  270 
+Iteration:  280 
+Iteration:  290 
+Iteration:  300 
+Iteration:  310 
+Iteration:  320 
+Iteration:  330 
+Iteration:  340 
+Iteration:  350 
+Iteration:  360 
+Iteration:  370 
+Iteration:  380 
+Iteration:  390 
+Iteration:  400 
+Iteration:  410 
+Iteration:  420 
+Iteration:  430 
+Iteration:  440 
+Iteration:  450 
+Iteration:  460 
+Iteration:  470 
+Iteration:  480 
+Iteration:  490 
+Iteration:  500 
+Iteration:  510 
+Iteration:  520 
+Iteration:  530 
+Iteration:  540 
+Iteration:  550 
+Iteration:  560 
+Iteration:  570 
+Iteration:  580 
+Iteration:  590 
+Iteration:  600 
+Iteration:  610 
+Iteration:  620 
+Iteration:  630 
+Iteration:  640 
+Iteration:  650 
+Iteration:  660 
+Iteration:  670 
+Iteration:  680 
+Iteration:  690 
+Iteration:  700 
+Iteration:  710 
+Iteration:  720 
+Iteration:  730 
+Iteration:  740 
+Iteration:  750 
+Iteration:  760 
+Iteration:  770 
+Iteration:  780 
+Iteration:  790 
+Iteration:  800 
+Iteration:  810 
+Iteration:  820 
+Iteration:  830 
+Iteration:  840 
+Iteration:  850 
+Iteration:  860 
+Iteration:  870 
+Iteration:  880 
+Iteration:  890 
+Iteration:  900 
+Iteration:  910 
+Iteration:  920 
+Iteration:  930 
+Iteration:  940 
+Iteration:  950 
+Iteration:  960 
+Iteration:  970 
+Iteration:  980 
+Iteration:  990 
+Iteration:  1000 
+Iteration:  10 
+Iteration:  20 
+Iteration:  30 
+Iteration:  40 
+Iteration:  50 
+Iteration:  60 
+Iteration:  70 
+Iteration:  80 
+Iteration:  90 
+Iteration:  100 
+Iteration:  110 
+Iteration:  120 
+Iteration:  130 
+Iteration:  140 
+Iteration:  150 
+Iteration:  160 
+Iteration:  170 
+Iteration:  180 
+Iteration:  190 
+Iteration:  200 
+Iteration:  210 
+Iteration:  220 
+Iteration:  230 
+Iteration:  240 
+Iteration:  250 
+Iteration:  260 
+Iteration:  270 
+Iteration:  280 
+Iteration:  290 
+Iteration:  300 
+Iteration:  310 
+Iteration:  320 
+Iteration:  330 
+Iteration:  340 
+Iteration:  350 
+Iteration:  360 
+Iteration:  370 
+Iteration:  380 
+Iteration:  390 
+Iteration:  400 
+Iteration:  410 
+Iteration:  420 
+Iteration:  430 
+Iteration:  440 
+Iteration:  450 
+Iteration:  460 
+Iteration:  470 
+Iteration:  480 
+Iteration:  490 
+Iteration:  500 
+Iteration:  510 
+Iteration:  520 
+Iteration:  530 
+Iteration:  540 
+Iteration:  550 
+Iteration:  560 
+Iteration:  570 
+Iteration:  580 
+Iteration:  590 
+Iteration:  600 
+Iteration:  610 
+Iteration:  620 
+Iteration:  630 
+Iteration:  640 
+Iteration:  650 
+Iteration:  660 
+Iteration:  670 
+Iteration:  680 
+Iteration:  690 
+Iteration:  700 
+Iteration:  710 
+Iteration:  720 
+Iteration:  730 
+Iteration:  740 
+Iteration:  750 
+Iteration:  760 
+Iteration:  770 
+Iteration:  780 
+Iteration:  790 
+Iteration:  800 
+Iteration:  810 
+Iteration:  820 
+Iteration:  830 
+Iteration:  840 
+Iteration:  850 
+Iteration:  860 
+Iteration:  870 
+Iteration:  880 
+Iteration:  890 
+Iteration:  900 
+Iteration:  910 
+Iteration:  920 
+Iteration:  930 
+Iteration:  940 
+Iteration:  950 
+Iteration:  960 
+Iteration:  970 
+Iteration:  980 
+Iteration:  990 
+Iteration:  1000 
+Iteration:  10 
+Iteration:  20 
+Iteration:  30 
+Iteration:  40 
+Iteration:  50 
+Iteration:  60 
+Iteration:  70 
+Iteration:  80 
+Iteration:  90 
+Iteration:  100 
+Iteration:  110 
+Iteration:  120 
+Iteration:  130 
+Iteration:  140 
+Iteration:  150 
+Iteration:  160 
+Iteration:  170 
+Iteration:  180 
+Iteration:  190 
+Iteration:  200 
+Iteration:  210 
+Iteration:  220 
+Iteration:  230 
+Iteration:  240 
+Iteration:  250 
+Iteration:  260 
+Iteration:  270 
+Iteration:  280 
+Iteration:  290 
+Iteration:  300 
+Iteration:  310 
+Iteration:  320 
+Iteration:  330 
+Iteration:  340 
+Iteration:  350 
+Iteration:  360 
+Iteration:  370 
+Iteration:  380 
+Iteration:  390 
+Iteration:  400 
+Iteration:  410 
+Iteration:  420 
+Iteration:  430 
+Iteration:  440 
+Iteration:  450 
+Iteration:  460 
+Iteration:  470 
+Iteration:  480 
+Iteration:  490 
+Iteration:  500 
+Iteration:  510 
+Iteration:  520 
+Iteration:  530 
+Iteration:  540 
+Iteration:  550 
+Iteration:  560 
+Iteration:  570 
+Iteration:  580 
+Iteration:  590 
+Iteration:  600 
+Iteration:  610 
+Iteration:  620 
+Iteration:  630 
+Iteration:  640 
+Iteration:  650 
+Iteration:  660 
+Iteration:  670 
+Iteration:  680 
+Iteration:  690 
+Iteration:  700 
+Iteration:  710 
+Iteration:  720 
+Iteration:  730 
+Iteration:  740 
+Iteration:  750 
+Iteration:  760 
+Iteration:  770 
+Iteration:  780 
+Iteration:  790 
+Iteration:  800 
+Iteration:  810 
+Iteration:  820 
+Iteration:  830 
+Iteration:  840 
+Iteration:  850 
+Iteration:  860 
+Iteration:  870 
+Iteration:  880 
+Iteration:  890 
+Iteration:  900 
+Iteration:  910 
+Iteration:  920 
+Iteration:  930 
+Iteration:  940 
+Iteration:  950 
+Iteration:  960 
+Iteration:  970 
+Iteration:  980 
+Iteration:  990 
+Iteration:  1000 
+Iteration:  10 
+Iteration:  20 
+Iteration:  30 
+Iteration:  40 
+Iteration:  50 
+Iteration:  60 
+Iteration:  70 
+Iteration:  80 
+Iteration:  90 
+Iteration:  100 
+Iteration:  110 
+Iteration:  120 
+Iteration:  130 
+Iteration:  140 
+Iteration:  150 
+Iteration:  160 
+Iteration:  170 
+Iteration:  180 
+Iteration:  190 
+Iteration:  200 
+Iteration:  210 
+Iteration:  220 
+Iteration:  230 
+Iteration:  240 
+Iteration:  250 
+Iteration:  260 
+Iteration:  270 
+Iteration:  280 
+Iteration:  290 
+Iteration:  300 
+Iteration:  310 
+Iteration:  320 
+Iteration:  330 
+Iteration:  340 
+Iteration:  350 
+Iteration:  360 
+Iteration:  370 
+Iteration:  380 
+Iteration:  390 
+Iteration:  400 
+Iteration:  410 
+Iteration:  420 
+Iteration:  430 
+Iteration:  440 
+Iteration:  450 
+Iteration:  460 
+Iteration:  470 
+Iteration:  480 
+Iteration:  490 
+Iteration:  500 
+Iteration:  510 
+Iteration:  520 
+Iteration:  530 
+Iteration:  540 
+Iteration:  550 
+Iteration:  560 
+Iteration:  570 
+Iteration:  580 
+Iteration:  590 
+Iteration:  600 
+Iteration:  610 
+Iteration:  620 
+Iteration:  630 
+Iteration:  640 
+Iteration:  650 
+Iteration:  660 
+Iteration:  670 
+Iteration:  680 
+Iteration:  690 
+Iteration:  700 
+Iteration:  710 
+Iteration:  720 
+Iteration:  730 
+Iteration:  740 
+Iteration:  750 
+Iteration:  760 
+Iteration:  770 
+Iteration:  780 
+Iteration:  790 
+Iteration:  800 
+Iteration:  810 
+Iteration:  820 
+Iteration:  830 
+Iteration:  840 
+Iteration:  850 
+Iteration:  860 
+Iteration:  870 
+Iteration:  880 
+Iteration:  890 
+Iteration:  900 
+Iteration:  910 
+Iteration:  920 
+Iteration:  930 
+Iteration:  940 
+Iteration:  950 
+Iteration:  960 
+Iteration:  970 
+Iteration:  980 
+Iteration:  990 
+Iteration:  1000 
+Iteration:  10 
+Iteration:  20 
+Iteration:  30 
+Iteration:  40 
+Iteration:  50 
+Iteration:  60 
+Iteration:  70 
+Iteration:  80 
+Iteration:  90 
+Iteration:  100 
+Iteration:  110 
+Iteration:  120 
+Iteration:  130 
+Iteration:  140 
+Iteration:  150 
+Iteration:  160 
+Iteration:  170 
+Iteration:  180 
+Iteration:  190 
+Iteration:  200 
+Iteration:  210 
+Iteration:  220 
+Iteration:  230 
+Iteration:  240 
+Iteration:  250 
+Iteration:  260 
+Iteration:  270 
+Iteration:  280 
+Iteration:  290 
+Iteration:  300 
+Iteration:  310 
+Iteration:  320 
+Iteration:  330 
+Iteration:  340 
+Iteration:  350 
+Iteration:  360 
+Iteration:  370 
+Iteration:  380 
+Iteration:  390 
+Iteration:  400 
+Iteration:  410 
+Iteration:  420 
+Iteration:  430 
+Iteration:  440 
+Iteration:  450 
+Iteration:  460 
+Iteration:  470 
+Iteration:  480 
+Iteration:  490 
+Iteration:  500 
+Iteration:  510 
+Iteration:  520 
+Iteration:  530 
+Iteration:  540 
+Iteration:  550 
+Iteration:  560 
+Iteration:  570 
+Iteration:  580 
+Iteration:  590 
+Iteration:  600 
+Iteration:  610 
+Iteration:  620 
+Iteration:  630 
+Iteration:  640 
+Iteration:  650 
+Iteration:  660 
+Iteration:  670 
+Iteration:  680 
+Iteration:  690 
+Iteration:  700 
+Iteration:  710 
+Iteration:  720 
+Iteration:  730 
+Iteration:  740 
+Iteration:  750 
+Iteration:  760 
+Iteration:  770 
+Iteration:  780 
+Iteration:  790 
+Iteration:  800 
+Iteration:  810 
+Iteration:  820 
+Iteration:  830 
+Iteration:  840 
+Iteration:  850 
+Iteration:  860 
+Iteration:  870 
+Iteration:  880 
+Iteration:  890 
+Iteration:  900 
+Iteration:  910 
+Iteration:  920 
+Iteration:  930 
+Iteration:  940 
+Iteration:  950 
+Iteration:  960 
+Iteration:  970 
+Iteration:  980 
+Iteration:  990 
+Iteration:  1000 
+Iteration:  10 
+Iteration:  20 
+Iteration:  30 
+Iteration:  40 
+Iteration:  50 
+Iteration:  60 
+Iteration:  70 
+Iteration:  80 
+Iteration:  90 
+Iteration:  100 
+Iteration:  110 
+Iteration:  120 
+Iteration:  130 
+Iteration:  140 
+Iteration:  150 
+Iteration:  160 
+Iteration:  170 
+Iteration:  180 
+Iteration:  190 
+Iteration:  200 
+Iteration:  210 
+Iteration:  220 
+Iteration:  230 
+Iteration:  240 
+Iteration:  250 
+Iteration:  260 
+Iteration:  270 
+Iteration:  280 
+Iteration:  290 
+Iteration:  300 
+Iteration:  310 
+Iteration:  320 
+Iteration:  330 
+Iteration:  340 
+Iteration:  350 
+Iteration:  360 
+Iteration:  370 
+Iteration:  380 
+Iteration:  390 
+Iteration:  400 
+Iteration:  410 
+Iteration:  420 
+Iteration:  430 
+Iteration:  440 
+Iteration:  450 
+Iteration:  460 
+Iteration:  470 
+Iteration:  480 
+Iteration:  490 
+Iteration:  500 
+Iteration:  510 
+Iteration:  520 
+Iteration:  530 
+Iteration:  540 
+Iteration:  550 
+Iteration:  560 
+Iteration:  570 
+Iteration:  580 
+Iteration:  590 
+Iteration:  600 
+Iteration:  610 
+Iteration:  620 
+Iteration:  630 
+Iteration:  640 
+Iteration:  650 
+Iteration:  660 
+Iteration:  670 
+Iteration:  680 
+Iteration:  690 
+Iteration:  700 
+Iteration:  710 
+Iteration:  720 
+Iteration:  730 
+Iteration:  740 
+Iteration:  750 
+Iteration:  760 
+Iteration:  770 
+Iteration:  780 
+Iteration:  790 
+Iteration:  800 
+Iteration:  810 
+Iteration:  820 
+Iteration:  830 
+Iteration:  840 
+Iteration:  850 
+Iteration:  860 
+Iteration:  870 
+Iteration:  880 
+Iteration:  890 
+Iteration:  900 
+Iteration:  910 
+Iteration:  920 
+Iteration:  930 
+Iteration:  940 
+Iteration:  950 
+Iteration:  960 
+Iteration:  970 
+Iteration:  980 
+Iteration:  990 
+Iteration:  1000 
+Iteration:  10 
+Iteration:  20 
+Iteration:  30 
+Iteration:  40 
+Iteration:  50 
+Iteration:  60 
+Iteration:  70 
+Iteration:  80 
+Iteration:  90 
+Iteration:  100 
+Iteration:  110 
+Iteration:  120 
+Iteration:  130 
+Iteration:  140 
+Iteration:  150 
+Iteration:  160 
+Iteration:  170 
+Iteration:  180 
+Iteration:  190 
+Iteration:  200 
+Iteration:  210 
+Iteration:  220 
+Iteration:  230 
+Iteration:  240 
+Iteration:  250 
+Iteration:  260 
+Iteration:  270 
+Iteration:  280 
+Iteration:  290 
+Iteration:  300 
+Iteration:  310 
+Iteration:  320 
+Iteration:  330 
+Iteration:  340 
+Iteration:  350 
+Iteration:  360 
+Iteration:  370 
+Iteration:  380 
+Iteration:  390 
+Iteration:  400 
+Iteration:  410 
+Iteration:  420 
+Iteration:  430 
+Iteration:  440 
+Iteration:  450 
+Iteration:  460 
+Iteration:  470 
+Iteration:  480 
+Iteration:  490 
+Iteration:  500 
+Iteration:  510 
+Iteration:  520 
+Iteration:  530 
+Iteration:  540 
+Iteration:  550 
+Iteration:  560 
+Iteration:  570 
+Iteration:  580 
+Iteration:  590 
+Iteration:  600 
+Iteration:  610 
+Iteration:  620 
+Iteration:  630 
+Iteration:  640 
+Iteration:  650 
+Iteration:  660 
+Iteration:  670 
+Iteration:  680 
+Iteration:  690 
+Iteration:  700 
+Iteration:  710 
+Iteration:  720 
+Iteration:  730 
+Iteration:  740 
+Iteration:  750 
+Iteration:  760 
+Iteration:  770 
+Iteration:  780 
+Iteration:  790 
+Iteration:  800 
+Iteration:  810 
+Iteration:  820 
+Iteration:  830 
+Iteration:  840 
+Iteration:  850 
+Iteration:  860 
+Iteration:  870 
+Iteration:  880 
+Iteration:  890 
+Iteration:  900 
+Iteration:  910 
+Iteration:  920 
+Iteration:  930 
+Iteration:  940 
+Iteration:  950 
+Iteration:  960 
+Iteration:  970 
+Iteration:  980 
+Iteration:  990 
+Iteration:  1000 
+Iteration:  10 
+Iteration:  20 
+Iteration:  30 
+Iteration:  40 
+Iteration:  50 
+Iteration:  60 
+Iteration:  70 
+Iteration:  80 
+Iteration:  90 
+Iteration:  100 
+Iteration:  110 
+Iteration:  120 
+Iteration:  130 
+Iteration:  140 
+Iteration:  150 
+Iteration:  160 
+Iteration:  170 
+Iteration:  180 
+Iteration:  190 
+Iteration:  200 
+Iteration:  210 
+Iteration:  220 
+Iteration:  230 
+Iteration:  240 
+Iteration:  250 
+Iteration:  260 
+Iteration:  270 
+Iteration:  280 
+Iteration:  290 
+Iteration:  300 
+Iteration:  310 
+Iteration:  320 
+Iteration:  330 
+Iteration:  340 
+Iteration:  350 
+Iteration:  360 
+Iteration:  370 
+Iteration:  380 
+Iteration:  390 
+Iteration:  400 
+Iteration:  410 
+Iteration:  420 
+Iteration:  430 
+Iteration:  440 
+Iteration:  450 
+Iteration:  460 
+Iteration:  470 
+Iteration:  480 
+Iteration:  490 
+Iteration:  500 
+Iteration:  510 
+Iteration:  520 
+Iteration:  530 
+Iteration:  540 
+Iteration:  550 
+Iteration:  560 
+Iteration:  570 
+Iteration:  580 
+Iteration:  590 
+Iteration:  600 
+Iteration:  610 
+Iteration:  620 
+Iteration:  630 
+Iteration:  640 
+Iteration:  650 
+Iteration:  660 
+Iteration:  670 
+Iteration:  680 
+Iteration:  690 
+Iteration:  700 
+Iteration:  710 
+Iteration:  720 
+Iteration:  730 
+Iteration:  740 
+Iteration:  750 
+Iteration:  760 
+Iteration:  770 
+Iteration:  780 
+Iteration:  790 
+Iteration:  800 
+Iteration:  810 
+Iteration:  820 
+Iteration:  830 
+Iteration:  840 
+Iteration:  850 
+Iteration:  860 
+Iteration:  870 
+Iteration:  880 
+Iteration:  890 
+Iteration:  900 
+Iteration:  910 
+Iteration:  920 
+Iteration:  930 
+Iteration:  940 
+Iteration:  950 
+Iteration:  960 
+Iteration:  970 
+Iteration:  980 
+Iteration:  990 
+Iteration:  1000 
+Iteration:  10 
+Iteration:  20 
+Iteration:  30 
+Iteration:  40 
+Iteration:  50 
+Iteration:  60 
+Iteration:  70 
+Iteration:  80 
+Iteration:  90 
+Iteration:  100 
+Iteration:  110 
+Iteration:  120 
+Iteration:  130 
+Iteration:  140 
+Iteration:  150 
+Iteration:  160 
+Iteration:  170 
+Iteration:  180 
+Iteration:  190 
+Iteration:  200 
+Iteration:  210 
+Iteration:  220 
+Iteration:  230 
+Iteration:  240 
+Iteration:  250 
+Iteration:  260 
+Iteration:  270 
+Iteration:  280 
+Iteration:  290 
+Iteration:  300 
+Iteration:  310 
+Iteration:  320 
+Iteration:  330 
+Iteration:  340 
+Iteration:  350 
+Iteration:  360 
+Iteration:  370 
+Iteration:  380 
+Iteration:  390 
+Iteration:  400 
+Iteration:  410 
+Iteration:  420 
+Iteration:  430 
+Iteration:  440 
+Iteration:  450 
+Iteration:  460 
+Iteration:  470 
+Iteration:  480 
+Iteration:  490 
+Iteration:  500 
+Iteration:  510 
+Iteration:  520 
+Iteration:  530 
+Iteration:  540 
+Iteration:  550 
+Iteration:  560 
+Iteration:  570 
+Iteration:  580 
+Iteration:  590 
+Iteration:  600 
+Iteration:  610 
+Iteration:  620 
+Iteration:  630 
+Iteration:  640 
+Iteration:  650 
+Iteration:  660 
+Iteration:  670 
+Iteration:  680 
+Iteration:  690 
+Iteration:  700 
+Iteration:  710 
+Iteration:  720 
+Iteration:  730 
+Iteration:  740 
+Iteration:  750 
+Iteration:  760 
+Iteration:  770 
+Iteration:  780 
+Iteration:  790 
+Iteration:  800 
+Iteration:  810 
+Iteration:  820 
+Iteration:  830 
+Iteration:  840 
+Iteration:  850 
+Iteration:  860 
+Iteration:  870 
+Iteration:  880 
+Iteration:  890 
+Iteration:  900 
+Iteration:  910 
+Iteration:  920 
+Iteration:  930 
+Iteration:  940 
+Iteration:  950 
+Iteration:  960 
+Iteration:  970 
+Iteration:  980 
+Iteration:  990 
+Iteration:  1000 
+Iteration:  10 
+Iteration:  20 
+Iteration:  30 
+Iteration:  40 
+Iteration:  50 
+Iteration:  60 
+Iteration:  70 
+Iteration:  80 
+Iteration:  90 
+Iteration:  100 
+Iteration:  110 
+Iteration:  120 
+Iteration:  130 
+Iteration:  140 
+Iteration:  150 
+Iteration:  160 
+Iteration:  170 
+Iteration:  180 
+Iteration:  190 
+Iteration:  200 
+Iteration:  210 
+Iteration:  220 
+Iteration:  230 
+Iteration:  240 
+Iteration:  250 
+Iteration:  260 
+Iteration:  270 
+Iteration:  280 
+Iteration:  290 
+Iteration:  300 
+Iteration:  310 
+Iteration:  320 
+Iteration:  330 
+Iteration:  340 
+Iteration:  350 
+Iteration:  360 
+Iteration:  370 
+Iteration:  380 
+Iteration:  390 
+Iteration:  400 
+Iteration:  410 
+Iteration:  420 
+Iteration:  430 
+Iteration:  440 
+Iteration:  450 
+Iteration:  460 
+Iteration:  470 
+Iteration:  480 
+Iteration:  490 
+Iteration:  500 
+Iteration:  510 
+Iteration:  520 
+Iteration:  530 
+Iteration:  540 
+Iteration:  550 
+Iteration:  560 
+Iteration:  570 
+Iteration:  580 
+Iteration:  590 
+Iteration:  600 
+Iteration:  610 
+Iteration:  620 
+Iteration:  630 
+Iteration:  640 
+Iteration:  650 
+Iteration:  660 
+Iteration:  670 
+Iteration:  680 
+Iteration:  690 
+Iteration:  700 
+Iteration:  710 
+Iteration:  720 
+Iteration:  730 
+Iteration:  740 
+Iteration:  750 
+Iteration:  760 
+Iteration:  770 
+Iteration:  780 
+Iteration:  790 
+Iteration:  800 
+Iteration:  810 
+Iteration:  820 
+Iteration:  830 
+Iteration:  840 
+Iteration:  850 
+Iteration:  860 
+Iteration:  870 
+Iteration:  880 
+Iteration:  890 
+Iteration:  900 
+Iteration:  910 
+Iteration:  920 
+Iteration:  930 
+Iteration:  940 
+Iteration:  950 
+Iteration:  960 
+Iteration:  970 
+Iteration:  980 
+Iteration:  990 
+Iteration:  1000 
+> 
+> d$beta.var = factor(d$beta.var)
+> 
+> save.image(file = "random_coefficient_gain_sim_July2017.rda")
+> 
+> 
+> 
+> 
+> 
+> 
+> 
+> proc.time()
+     user    system   elapsed 
+95069.216    35.008 95155.160 
